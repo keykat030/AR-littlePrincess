@@ -32,6 +32,20 @@
             z-index: -10; 
             pointer-events: none; 
         }
+        #page-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 60px);
+    background-color: var(--bg-white);
+    z-index: 10;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
         /* 텍스트 및 오버레이 화면 */
         #page-overlay.ar-mode {
