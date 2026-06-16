@@ -1,52 +1,45 @@
-<!--v1-->
-
 <!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>소공녀 세라 스토리북 AR</title>
+    <title>소공녀 세라 거리감지 AR</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        /* 화면 상단에 고정될 스토리 내러티브 UI */
         #ar-ui-container { 
             position: absolute; top: 15px; left: 5%; width: 90%; 
             background: rgba(0, 0, 0, 0.85); color: white; padding: 15px; 
-            border-radius: 10px; z-index: 999; font-family: 'Malgun Gothic', sans-serif; 
-            box-sizing: border-box; border: 1px solid #333;
+            border-radius: 10px; z-index: 999; font-family: sans-serif; box-sizing: border-box; 
         }
         #ui-text { margin: 0 0 10px 0; font-size: 14px; line-height: 1.5; }
-        #ui-btn { 
-            background: #4a90e2; color: white; border: none; padding: 8px 16px; 
-            border-radius: 4px; cursor: pointer; float: right; font-weight: bold;
-        }
+        #ui-btn { background: #4a90e2; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
+        /* 개발 디버깅용 실시간 거리 표시창 */
+        #distance-debug { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #00ff00; padding: 5px 10px; font-size: 12px; z-index: 999; border-radius: 3px; }
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
 
     <div id="ar-ui-container">
-        <p id="ui-text"><b>[1장: 민친 학교]</b> 책 표지를 카메라로 비추어 가상 공간을 증강하세요. 등장한 인물들을 손가락으로 터치하면 인물 설명이 나타납니다.</p>
+        <p id="ui-text"><b>[1장: 민친 학교]</b> 마커(책 표지)에 스마트폰을 <b>가까이 가져가 보세요.</b> 인물에 가까워지면 설명이 자동으로 나타납니다.</p>
         <button id="ui-btn" onclick="nextStage()">다음 장으로</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" 
+    <div id="distance-debug">마커를 비춰주세요. (거리 계산 대기 중)</div>
+
+    <a-scene mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/examples/image-tracking/assets/card-example/card.mind;" 
              color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
         
-        <a-camera position="0 0 0" look-controls="enabled: false" 
+        <a-camera id="my-camera" position="0 0 0" look-controls="enabled: false" 
                   raycaster="objects: .clickable" cursor="fuse: false; rayOrigin: mouse"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0">
+        <a-entity id="target-anchor" mindar-image-target="targetIndex: 0">
             
             <a-entity id="stage1-group">
-                <a-box class="clickable" color="#ff79c6" position="-0.4 0 0" width="0.2" height="0.4" depth="0.2"
-                       animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"
-                       onclick="showInfo('<b>[세라]</b> 크루 대령의 소중한 딸. 가장 좋은 방에서 최고급 옷을 입으며 모두의 사랑을 받고 입학했습니다.')"></a-box>
-                
-                <a-cone class="clickable" color="#bd93f9" position="0.4 0 0" radius-bottom="0.15" height="0.4"
-                        onclick="showInfo('<b>[민친 교장]</b> 겉으로는 세라를 아끼는 척하지만, 속으로는 세라 아버지가 가진 막대한 인도 재산에만 눈독을 들이고 있습니다.')"></ cone>
+                <a-box color="#ff79c6" position="-0.3 0 0" width="0.15" height="0.3" depth="0.15"></a-box>
+                <a-cone color="#bd93f9" position="0.3 0 0" radius-bottom="0.1" height="0.3"></a-cone>
             </a-entity>
 
             <a-cylinder id="stage3-coin" class="clickable" color="#f1fa8c" 
@@ -54,10 +47,7 @@
                         visible="false" onclick="grabCoin()"></a-cylinder>
 
             <a-entity id="stage4-group" visible="false">
-                <a-box id="monkey-box" class="clickable" color="#ffb86c" 
-                       position="0.5 0.3 -0.1" width="0.12" height="0.12" depth="0.12" 
-                       onclick="findMonkey()"></a-box>
-                
+                <a-box id="monkey-box" class="clickable" color="#ffb86c" position="0.4 0.3 -0.1" width="0.1" height="0.1" depth="0.1" onclick="findMonkey()"></a-box>
                 <a-box id="feast-table" color="#ff5555" position="0 -0.1 0" width="0.4" height="0.15" depth="0.3" visible="false"></a-box>
             </a-entity>
 
@@ -66,46 +56,64 @@
 
     <script>
         let currentStage = 1;
+        let hasApproached = false; // 1장에서 한 번만 텍스트를 바꾸기 위한 플래그
 
-        function showInfo(text) {
-            document.getElementById('ui-text').innerHTML = text;
-        }
+        // 주기적으로 카메라와 마커 사이의 거리를 계산하는 개발 핵심 엔진
+        setInterval(() => {
+            if (currentStage !== 1) return; // 1장이 아닐 때는 거리 계산을 하지 않음
+
+            const cameraEl = document.getElementById('my-camera');
+            const anchorEl = document.getElementById('target-anchor');
+            const debugUi = document.getElementById('distance-debug');
+
+            if (!cameraEl || !anchorEl) return;
+
+            // 3D 공간 상에서 카메라와 마커 오브젝트의 실시간 위치(Vector3) 취득
+            const camPos = cameraEl.object3D.position;
+            const anchorPos = anchorEl.object3D.position;
+
+            // 두 지점 사이의 수학적 거리 계산 (3D 피타고라스 정리 적용)
+            const distance = camPos.distanceTo(anchorPos);
+            
+            // 화면에 실시간 거리 수치 피드백 (테스트 및 촬영 편의용)
+            debugUi.innerText = `마커와의 거리: ${distance.toFixed(2)}`;
+
+            // [핵심 인터랙션] 거리가 3.0 이하로 가까워지면 설명 작동 (기본값은 보통 4~5 수준)
+            if (distance < 3.0 && !hasApproached) {
+                hasApproached = true;
+                document.getElementById('ui-text').innerHTML = "<b>[1장: 다가가기 성공]</b> 세라와 민친 교장에게 가까이 접근했습니다! <br><i>'부유한 세라가 입학하자 민친 교장은 막대한 재산을 노리고 특별 대우를 시작합니다.'</i>";
+            }
+        }, 200); // 0.2초마다 실시간으로 거리를 체크하여 연산 성능 보장
 
         function nextStage() {
             currentStage++;
-            
             if(currentStage === 2) {
-                // 3장 은화 스토리로 전환 (2장 파산은 텍스트 브릿지로 연출)
                 document.getElementById('stage1-group').setAttribute('visible', 'false');
                 document.getElementById('stage3-coin').setAttribute('visible', 'true');
-                showInfo("<b>[3장: 심부름길의 은화]</b> 아버지가 돌아가시고 하녀로 전락한 세라. 어느 추운 겨울, 배고픈 심부름길 바닥에서 <b>빛나는 은화(노란 원반)</b>를 발견했습니다. 터치하여 주우세요.");
+                document.getElementById('ui-text').innerHTML = "<b>[3장: 심부름길의 은화]</b> 하녀가 된 세라. 배고픈 심부름길 바닥에서 <b>빛나는 은화(노란 원반)</b>를 발견했습니다. 터치하여 주우세요.";
             } 
             else if(currentStage === 3) {
-                // 4장 원숭이 찾기 스토리로 전환
                 document.getElementById('stage3-coin').setAttribute('visible', 'false');
                 document.getElementById('stage4-group').setAttribute('visible', 'true');
-                showInfo("<b>[4장: 다락방의 손님]</b> *찍찍!* 조용한 다락방에 원숭이 소리가 울립니다. 책 표지 오른쪽 상단 구석 어딘가 숨어있는 <b>주황색 원숭이 상자</b>를 찾아서 터치해 방 안으로 들여보내세요.");
-                document.getElementById('ui-btn').style.display = 'none'; // 원숭이를 찾기 전까지 다음 버튼 숨김
+                document.getElementById('ui-text').innerHTML = "<b>[4장: 다락방의 손님]</b> 오른쪽 상단 구석에 숨어있는 <b>주황색 원숭이 상자</b>를 찾아서 터치해 방 안으로 들여보내세요.";
+                document.getElementById('ui-btn').style.display = 'none';
             }
         }
 
         function grabCoin() {
             document.getElementById('stage3-coin').setAttribute('visible', 'false');
-            showInfo("<b>[은화 줍기 완료]</b> 정직하게 주인에게 전하고 받은 빵을 길가의 더 굶주린 아이에게 전부 양보했습니다. 세라의 고결한 성품이 증강되었습니다. [다음 장으로]를 누르세요.");
+            document.getElementById('ui-text').innerHTML = "<b>[은화 줍기 완료]</b> 은화로 산 빵을 더 굶주린 아이에게 양보했습니다. 세라의 고결한 성품이 증강되었습니다. [다음 장으로]를 누르세요.";
         }
 
         function findMonkey() {
-            // 원숭이를 찾았을 때의 원작 가치 보존 연출
             document.getElementById('feast-table').setAttribute('visible', 'true');
-            showInfo("<b>[인도인과의 우정]</b> 원숭이를 소중히 안아주며 옆집 인도인 하인(람다스)과 따뜻한 교감을 나눴습니다. 그 인연 덕분에 다음 날 다락방에 <b>따뜻한 난로와 식탁(빨간 오브젝트)</b>이 차려지는 기적이 일어났습니다! 원숭이를 한번 더 터치해 옆집으로 이동하세요.");
-            
-            // 5장 최종장 트리거로 핸들러 교체
+            document.getElementById('ui-text').innerHTML = "<b>[인도인과의 우정]</b> 원숭이를 매개로 이웃과 교감한 결과, 다락방에 <b>따뜻한 난로와 식탁(빨간 오브젝트)</b>이 차려졌습니다! 원숭이를 한번 더 터치하세요.";
             document.getElementById('monkey-box').setAttribute('onclick', 'goHappyEnding()');
         }
 
         function goHappyEnding() {
             document.getElementById('stage4-group').setAttribute('visible', 'false');
-            showInfo("<b>[5장: 해피 엔딩]</b> 원숭이를 돌려주러 옆집에 간 세라는 마침 자신을 애타게 찾던 아버지의 투자 동업자를 만나 자산을 극적으로 되찾았습니다! 다시 부유해진 세라는 하녀 베키와 함께 행복하게 살아가게 됩니다. - 과제 종료 -");
+            document.getElementById('ui-text').innerHTML = "<b>[5장: 해피 엔딩]</b> 투자 파트너를 만나 자산을 되찾은 세라는 하녀 베키와 함께 구원받아 행복해졌습니다. - 과제 종료 -";
         }
     </script>
 </body>
