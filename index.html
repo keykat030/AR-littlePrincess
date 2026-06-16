@@ -138,8 +138,7 @@
         </a-entity>
 
         <a-entity id="scene-monkey" visible="false">
-            <a-image src="assets/images/prop_window.png" position="0 1.8 -2.2" width="1.4" height="1.4"></a-image>
-            <a-image src="assets/images/npc_monkey.png" class="clickable" position="0.2 1.8 -2.1" width="0.5" height="0.5" onclick="findMonkey()"></a-entity>
+            <a-image src="assets/images/npc_monkey.png" class="clickable" position="3 5 -2.1" rotation="15 0 0" width="0.5" height="0.5" onclick="findMonkey()"></a-entity>
         </a-entity>
     </a-scene>
 
@@ -151,7 +150,7 @@
             { type: 'text', content: '세라의 방은 기숙사에서 가장 좋은 방이었어요.<br>그리고 세라는 아주 인기가 많았고,<br>모두가 세라의 재밌는 이야기를 듣고 싶어했어요.<br>라비니아는 맘에 들지 않았던 모양이지만요.' }, // 3
             { type: 'text', content: '세라는 하녀인 베키에도 친절하게 대해주었고,<br>둘은 둘도 없는 친구가 되었어요.<br>그러던 어느 날, 세라의 열 한 번째 생일이 찾아왔답니다!<br>학교에서 세라의 생일 파티를 화려하게 열어주었어요.' }, // 4
             { type: 'text', content: '그런데 갑자기, 슬픈 소식이 들려왔어요.<br>"세라의 아버지인 크루 씨가<br>빚을 남기고 돌아가셨습니다."<br>교장 선생님은 화난 표정으로 마구 고함을 쳤어요.<br>"파티는 그만 하겠어요.<br>더 이상 세라를 위해 쓸 돈이 없어요!"' }, // 5
-            { type: 'text', content: '세라는 너무 슬펐어요.<br>게다가 교장 선생님은 세라에게서<br>드레스, 구두를 모두 빼앗았고,<br>다락방으로 쫓아 내버렸어요.<br>하녀로 일하게 된 세라를 위로해 주는 건<br>베키와 인형인 에밀리 뿐이었어요.' }, // 6
+            { type: 'text', content: '게다가 교장 선생님은 세라에게서<br>드레스, 구두를 모두 빼앗았고,<br>다락방으로 쫓아 내버렸어요.<br>하녀로 일하게 된 세라를 위로해 주는 건<br>베키와 인형인 에밀리 뿐이었어요.' }, // 6
             { type: 'text', content: '추운 겨울이 오고, 세라는 심부름을 나갔어요.<br>아무것도 먹지 못하고 비틀비틀 걷던 세라는<br>우연히 빵가게 앞에서 은화 한 닢을 발견했어요.<br>주인을 찾아주기 위해,<br>세라는 은화를 주워 빵 가게로 들어갔어요.' }, // 7
             { type: 'ar', scene: 'scene-bakery' }, // 8
             { type: 'text', content: "'배가 몹시 고파 보이는데, 참 정직한 아이구나.'<br>빵 가게 주인은 세라에게 돈을 다시 돌려 주었어요.<br>\"하느님이 네게 주는 선물일 게다. 네가 가지거라.\"<br>\"감사합니다. 그럼, 이 돈으로 빵을 좀 주세요.\"<br>아주머니는 덤으로 빵을 두 개 더 주었어요!<br>빵집을 나오며, 세라는 빵집 앞에 앉아있던<br>신발이 없는 아이에게도 빵을 나눠주었어요." }, // 9
@@ -269,7 +268,7 @@
 
             if (x > screenW * 0.2 && x < screenW * 0.8 && y < screenH * 0.5) {
                 document.getElementById('inventory-ui').style.display = 'none';
-                showDesc('<b>[상호작용 완료]</b> 은화를 주인 아주머니에게 정직하게 전달했습니다.');
+                showDesc('은화를 주인 아주머니에게 정직하게 전달했습니다.');
             } else {
                 coinDrag.style.position = 'static';
             }
