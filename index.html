@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>소공녀 세라 AR 동화책</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
     
     <link href="https://hangeul.pstatic.net/hangeul_static/css/nanum-square-round.css" rel="stylesheet">
@@ -32,25 +31,14 @@
             z-index: -10; 
             pointer-events: none; 
         }
-        #page-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 60px);
-    background-color: var(--bg-white);
-    z-index: 10;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
 
         /* 텍스트 및 오버레이 화면 */
-        #page-overlay.ar-mode {
-    display:none;
-}
+        #page-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 60px);
+            background-color: var(--bg-white); z-index: 10;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: background-color 0.2s;
+        }
         /* AR 페이지 전환 시 흰 배경을 완벽히 걷어냄 */
         #page-overlay.ar-mode { background-color: transparent !important; pointer-events: none; }
 
@@ -123,12 +111,7 @@
         <button id="next-btn" class="nav-btn" onclick="changePage(1)">다음 ▶</button>
     </div>
 
-    <a-scene
-        embedded
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        vr-mode-ui="enabled: false"
-        renderer="antialias: true; alpha: true; colorSpace: sRGB;"
-    >
+    <a-scene embedded vr-mode-ui="enabled: false" renderer="antialias: true; alpha: true; colorSpace: sRGB;">
         <a-assets>
             <img id="gate-img" src="assets/images/wall_gate.png">
             <img id="sara-img" src="assets/images/char_sara.png">
@@ -148,23 +131,12 @@
             <a-image src="#becky-img" class="clickable" position="1.4 0.7 -2" width="0.6" height="1.2" onclick="showDesc('베키 - 하녀라고 구박당하지만, 세라의 소중한 친구다.')"></a-image>
         </a-entity>
 
-        <a-marker
-    id="scene-bakery"
-    type="pattern"
-    url="assets/markers/pattern-coin_marker.patt"
-    visible="false">
-
-    <a-cylinder
-        id="ar-coin"
-        class="clickable"
-        color="red"
-        position="0 0.5 0"
-        radius="0.2"
-        height="0.1"
-        onclick="pickupCoin()">
-    </a-cylinder>
-
-</a-marker>
+        <a-entity id="scene-bakery" visible="false">
+            <a-cylinder id="ar-coin" class="clickable" color="#C0C0C0" position="0 0.2 -1.3" radius="0.1" height="0.02" rotation="30 0 0" onclick="pickupCoin()"></a-cylinder>
+            
+            <a-image src="assets/images/prop_counter.png" position="0 0.9 -2.5" width="2" height="0.9"></a-image>
+            <a-image id="ar-baker" src="assets/images/npc_baker.png" position="0 1.6 -2.6" width="0.9" height="1.3"></a-image>
+        </a-entity>
 
         <a-entity id="scene-monkey" visible="false">
             <a-image src="assets/images/npc_monkey.png" class="clickable" position="1 5 -2.1" rotation="15 0 0" width="0.5" height="0.5" onclick="findMonkey()"></a-entity>
@@ -189,12 +161,33 @@
             { type: 'text', content: '다음 날 세라가 일을 마치고 돌아오니,<br>난로는 따뜻하게 불이 켜져있고<br>식탁에는 맛있는 음식이 준비되어 있었어요.<br>세라는 베키와 함께 행복한 식사를 했답니다.<br>사실 이건 옆 집의 인도 사람이 준비한 것이었고,<br>다음 날도, 그 다음 날도 인도 사람은 식사를 준비해 주었어요.' }, // 13
             { type: 'text', content: '그러던 어느 날, 세라는 옆집 원숭이가 창문 밖에서 떨고 있는 것을 보았어요.<br>"어머나, 원숭이가 또 왔네. 내가 데려다 줄테니 걱정하지 마."' }, // 14
             { type: 'ar', scene: 'scene-monkey' }, // 15
-            { type: 'text', content: '세라는 원숭이를 안고 옆집의 집주인을 만나게 되었어요.<br>그런데, 집주인은 세라를 보자 무척 놀랐어요!<br>"세상에! 아가씨가 크루 대위의 따님인가?<br>지금까지 아가씨를 무척 찾아다녔어!"' }, // 16
+            { type: 'text', content: '세라는 원숭이를 안고 옆집의 집주인을 만나게 되었어요.<br>"네, 세상에! 아가씨가 크루 대위의 따님인가?<br>지금까지 아가씨를 무척 찾아다녔어!"' }, // 16
             { type: 'text', content: '이제 세라의 슬픔은 끝났어요.<br>세라는 베키와 함께 행복하게 살았답니다!<br><br><b style="color:var(--point-pink); font-size:24px;">HAPPY ENDING</b>' } // 17
         ];
 
         let currentPage = 0;
         const maxPage = 17;
+
+        // [카메라 구동부 전면 리팩토링] 확실한 권한 요청 및 비디오 삽입 위치 강제 지정
+        function initCamera() {
+            const constraints = { video: { facingMode: "environment" }, audio: false };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function (stream) {
+                    let video = document.createElement('video');
+                    video.setAttribute('autoplay', '');
+                    video.setAttribute('playsinline', '');
+                    video.srcObject = stream;
+                    
+                    // DOM 구조 엉킴 방지: 무조건 body 맨 앞에 주입하고 배경색 리셋
+                    document.body.insertBefore(video, document.body.firstChild);
+                    document.body.style.backgroundColor = "transparent";
+                })
+                .catch(function (err) {
+                    console.error("카메라를 켤 수 없습니다: ", err);
+                    alert("카메라 권한을 승인하셔야 원활한 AR 감상이 가능합니다.");
+                });
+        }
 
         function renderPage() {
             const pageData = storyPages[currentPage];
@@ -206,7 +199,7 @@
 
             arPopup.style.display = 'none';
             inventoryUi.style.display = 'none';
-            document.querySelectorAll('[id^="scene-"]').forEach(el => el.setAttribute('visible', 'false'));
+            document.querySelectorAll('a-entity[id^="scene-"]').forEach(el => el.setAttribute('visible', 'false'));
             
             document.getElementById('prev-btn').disabled = (currentPage === 0);
             document.getElementById('next-btn').disabled = (currentPage === maxPage);
@@ -219,13 +212,11 @@
             } 
             else if (pageData.type === 'text') {
                 overlay.classList.remove('ar-mode');
-                overlay.style.display = "flex";
                 coverImage.style.display = 'none';
                 contentArea.innerHTML = pageData.content;
             } 
             else if (pageData.type === 'ar') {
                 overlay.classList.add('ar-mode');
-                overlay.style.display = "none";
                 coverImage.style.display = 'none';
                 contentArea.innerHTML = '';
                 
@@ -286,8 +277,9 @@
 
         // 페이지 로드 즉시 카메라 및 뷰포트 기동
         window.onload = function() {
+            initCamera();
             renderPage();
-        }
+        };
     </script>
 </body>
 </html>
