@@ -2,15 +2,33 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>소공녀 세라 터치 상호작용 AR</title>
+    <title>소공녀 세라 터치 완벽 수정본</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     
     <style>
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; }
-        video { position: absolute; top: 0; left: 0; width: 100vw !important; height: 100vh !important; object-fit: cover; z-index: -2; }
-        .a-canvas { background-color: transparent !important; z-index: 1; }
         
-        #ar-ui-container { position: absolute; top: 15px; left: 5%; width: 90%; background: rgba(0, 0, 0, 0.85); color: white; padding: 15px; border-radius: 10px; z-index: 999; font-family: sans-serif; box-sizing: border-box; }
+        /* [핵심 수정] 웹캠 영상 비디오가 절대 터치 이벤트를 방해하지 못하도록 설정 */
+        video { 
+            position: absolute; top: 0; left: 0; 
+            width: 100vw !important; height: 100vh !important; 
+            object-fit: cover; 
+            z-index: -5; /* 맨 뒤로 밀기 */
+            pointer-events: none; /* 클릭/터치 이벤트가 그냥 통과함 */
+        }
+        
+        /* [핵심 수정] A-Frame 캔버스가 전체 화면을 차지하고 터치를 직접 받도록 설정 */
+        a-scene {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+        
+        #ar-ui-container { 
+            position: absolute; top: 15px; left: 5%; width: 90%; 
+            background: rgba(0, 0, 0, 0.85); color: white; padding: 15px; 
+            border-radius: 10px; z-index: 999; font-family: sans-serif; box-sizing: border-box; 
+        }
         #ui-text { margin: 0 0 10px 0; font-size: 14px; line-height: 1.5; }
         #ui-btn { background: #4a90e2; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
     </style>
@@ -18,44 +36,45 @@
 <body style="margin: 0; overflow: hidden;">
 
     <div id="ar-ui-container">
-        <p id="ui-text"><b>[1장: 민친 학교]</b> 화면에 보이는 <b>핑크색 상자(세라)</b>나 <b>보라색 원뿔(교장)</b>을 손가락으로 직접 터치해 보세요.</p>
+        <p id="ui-text"><b>[1장: 민친 학교]</b> 레이어가 수정되었습니다. 화면에 보이는 <b>핑크색 상자(세라)</b>나 <b>보라색 원뿔(교장)</b>을 손가락으로 툭 터치해 보세요.</p>
         <button id="ui-btn" onclick="nextStage()">다음 장으로</button>
     </div>
 
-    <a-scene embedded vr-mode-ui="enabled: false" renderer="antialias: true; alpha: true; colorSpace: sRGB;">
+    <!-- embedded 옵션을 빼고 전면 배치하여 터치를 바로 흡수하도록 변경 -->
+    <a-scene vr-mode-ui="enabled: false" renderer="antialias: true; alpha: true; colorSpace: sRGB;">
         
-        <!-- [핵심 수정] 모바일 화면 터치를 3D 공간의 클릭 이벤트로 치환해 주는 레이캐스터 패키지 세팅 -->
-        <a-camera id="my-camera" position="0 1.6 0" look-controls="enabled: true" raycaster="objects: .clickable" cursor="rayOrigin: mouse"></a-camera>
+        <!-- 레이캐스터가 오브젝트들을 마우스/터치 좌표로 정밀 조준하도록 설정 -->
+        <a-camera id="my-camera" position="0 1.6 0" look-controls="enabled: true" raycaster="objects: .clickable" cursor="rayOrigin: mouse; fuse: false;"></a-camera>
 
-        <!-- ================= 모든 물체 절대 고정 공간 세트 ================= -->
         <a-entity id="ar-world-root">
             
             <!-- ① [1장] 인물 및 3면 가벽 그룹 -->
             <a-entity id="stage1-group">
-                <!-- 3면 가벽 세트 (내 정면 앞쪽에 고정되어 배치됨) -->
+                <!-- 3면 가벽 세트 -->
                 <a-box color="#8B4513" position="0 1.5 -3.0" width="4" height="3" depth="0.1" opacity="0.8"></a-box>
                 <a-box color="#A0522D" position="-2 1.5 -1.5" width="0.1" height="3" depth="3" opacity="0.8"></a-box>
                 <a-box color="#A0522D" position="2 1.5 -1.5" width="0.1" height="3" depth="3" opacity="0.8"></a-box>
 
-                <!-- 세라 오브젝트: 클릭 가능하도록 class="clickable"과 onclick 주입 -->
-                <a-entity id="sara-obj" class="clickable" position="-0.6 1.2 -2.0" onclick="showNarrative('sara')">
-                    <a-box color="#ff79c6" width="0.2" height="0.4" depth="0.2" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-box>
-                    <a-text value="SARA" color="white" align="center" position="0 0.3 0" scale="0.6 0.6 0.6"></a-text>
-                </a-entity>
+                <!-- 세라 오브젝트 (클릭 범위 확보를 위해 크기 살짝 키움) -->
+                <a-box id="sara-obj" class="clickable" color="#ff79c6" position="-0.6 1.2 -2.0" width="0.3" height="0.5" depth="0.3" 
+                       animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"
+                       onclick="showNarrative('sara')">
+                    <a-text value="SARA" color="white" align="center" position="0 0.4 0" scale="0.6 0.6 0.6"></a-text>
+                </a-box>
                 
-                <!-- 민친 교장 오브젝트: 클릭 가능하도록 class="clickable"과 onclick 주입 -->
-                <a-entity id="minchin-obj" class="clickable" position="0.6 1.1 -2.0" onclick="showNarrative('minchin')">
-                    <a-cone color="#bd93f9" radius-bottom="0.15" height="0.4"></a-cone>
-                    <a-text value="MINCHIN" color="white" align="center" position="0 0.3 0" scale="0.6 0.6 0.6"></a-text>
-                </a-entity>
+                <!-- 민친 교장 오브젝트 -->
+                <a-cone id="minchin-obj" class="clickable" color="#bd93f9" position="0.6 1.2 -2.0" radius-bottom="0.2" height="0.5"
+                        onclick="showNarrative('minchin')">
+                    <a-text value="MINCHIN" color="white" align="center" position="0 0.4 0" scale="0.6 0.6 0.6"></a-text>
+                </a-cone>
             </a-entity>
 
             <!-- ② [3장] 은화 -->
-            <a-cylinder id="stage3-coin" color="#f1fa8c" position="0 0.4 -1.2" radius="0.12" height="0.02" rotation="90 0 0" visible="false" class="clickable" onclick="grabCoin()"></a-cylinder>
+            <a-cylinder id="stage3-coin" class="clickable" color="#f1fa8c" position="0 0.5 -1.2" radius="0.15" height="0.02" rotation="90 0 0" visible="false" onclick="grabCoin()"></a-cylinder>
 
             <!-- ③ [4, 5장] 다락방 세트 -->
             <a-entity id="stage4-group" visible="false">
-                <a-box id="monkey-box" color="#ffb86c" position="0.3 1.8 -1.2" width="0.15" height="0.15" depth="0.15" class="clickable" onclick="findMonkey()"></a-box>
+                <a-box id="monkey-box" class="clickable" color="#ffb86c" position="0.3 1.6 -1.2" width="0.2" height="0.2" depth="0.2" onclick="findMonkey()"></a-box>
                 <a-box id="feast-table" color="#ff5555" position="0 0.4 -1.0" width="0.5" height="0.2" depth="0.3" visible="false"></a-box>
             </a-entity>
             
@@ -66,24 +85,23 @@
     <script>
         let currentStage = 1;
 
-        // 스마트폰 후면 카메라 화면 주입
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
             .then(function (stream) {
                 let video = document.createElement('video');
                 video.srcObject = stream;
                 video.autoplay = true;
                 video.playsInline = true;
-                document.body.appendChild(video);
+                // 레이어 간섭을 막기 위해 body의 맨 첫 번째 자식으로 주입
+                document.body.insertBefore(video, document.body.firstChild);
             });
 
-        // [핵심 인터랙션] 오브젝트 터치 시 상단 텍스트만 깔끔하게 바꿔주는 함수
         function showNarrative(character) {
             if (currentStage !== 1) return;
             
             if (character === 'sara') {
-                document.getElementById('ui-text').innerHTML = "<b>[인물 조사 - 세라]</b> <i>'크루 대령의 막대한 지원 덕분에 최고급 특별실에서 부유한 학교 생활을 시작하며 모두의 부러움을 삽니다.'</i>";
+                document.getElementById('ui-text').innerHTML = "<b>[인물 조사 - 세라]</b> <i>'막대한 자산 덕분에 특별 대우를 받으며 화려한 민친 학교의 주역으로 서 있습니다.'</i>";
             } else if (character === 'minchin') {
-                document.getElementById('ui-text').innerHTML = "<b>[인물 조사 - 민친 교장]</b> <i>'학교의 재정적 이익을 위해 세라를 특별 칭송하지만, 속으로는 가식적인 계산기를 두드리고 있습니다.'</i>";
+                document.getElementById('ui-text').innerHTML = "<b>[인물 조사 - 민친 교장]</b> <i>'세라의 자산 가치만을 노리고 가식적인 호의를 베풀며 계산기를 두드리고 있습니다.'</i>";
             }
         }
 
@@ -92,7 +110,7 @@
             if(currentStage === 2) {
                 document.getElementById('stage1-group').setAttribute('visible', 'false');
                 document.getElementById('stage3-coin').setAttribute('visible', 'true');
-                document.getElementById('ui-text').innerHTML = "<b>[3장: 심부름길의 은화]</b> 하녀가 되어 추운 거리에 나선 세라. 바닥에 떨어진 <b>빛나는 은화(노란 원반)</b>를 터치하여 주우세요.";
+                document.getElementById('ui-text').innerHTML = "<b>[3장: 심부름길의 은화]</b> 하녀가 된 세라. 바닥에 떨어진 <b>빛나는 은화(노란 원반)</b>를 손가락으로 터치하여 주우세요.";
             } 
             else if(currentStage === 3) {
                 document.getElementById('stage3-coin').setAttribute('visible', 'false');
@@ -104,18 +122,18 @@
 
         function grabCoin() {
             document.getElementById('stage3-coin').setAttribute('visible', 'false');
-            document.getElementById('ui-text').innerHTML = "<b>[은화 줍기 완료]</b> 은화로 빵을 사서 더 배고픈 이웃 아이에게 전부 양보했습니다. [다음 장으로]를 누르세요.";
+            document.getElementById('ui-text').innerHTML = "<b>[은화 줍기 완료]</b> 은화로 빵을 사서 더 배고픈 아이에게 양보했습니다. [다음 장으로]를 누르세요.";
         }
 
         function findMonkey() {
             document.getElementById('feast-table').setAttribute('visible', 'true');
-            document.getElementById('ui-text').innerHTML = "<b>[다락방의 기적]</b> 원숭이를 돌려주며 인도인 하인과 정을 나눈 보답으로, <b>따뜻한 만찬 식탁(빨간 상자)</b>이 차려졌습니다! 원숭이를 한 번 더 터치하세요.";
+            document.getElementById('ui-text').innerHTML = "<b>[다락방의 기적]</b> 원숭이를 돌려준 보답으로, 차가운 방에 <b>따뜻한 만찬 식탁(빨간 상자)</b>이 차려졌습니다! 원숭이를 한 번 더 터치하세요.";
             document.getElementById('monkey-box').setAttribute('onclick', 'goHappyEnding()');
         }
 
         function goHappyEnding() {
             document.getElementById('stage4-group').setAttribute('visible', 'false');
-            document.getElementById('ui-text').innerHTML = "<b>[5장: 최종 해피엔딩]</b> 자산을 모두 되찾고 가난에서 벗어나 완벽한 행복을 찾았습니다. 과제가 성공적으로 종료되었습니다.";
+            document.getElementById('ui-text').innerHTML = "<b>[5장: 최종 해피엔딩]</b> 모든 자산을 되찾고 행복해졌습니다. 과제가 성공적으로 종료되었습니다.";
         }
     </script>
 </body>
