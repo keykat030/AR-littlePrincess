@@ -171,25 +171,9 @@
         const maxPage = 17;
 
         // [카메라 구동부 전면 리팩토링] 확실한 권한 요청 및 비디오 삽입 위치 강제 지정
-        function initCamera() {
-            const constraints = { video: { facingMode: "environment" }, audio: false };
-            
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function (stream) {
-                    let video = document.createElement('video');
-                    video.setAttribute('autoplay', '');
-                    video.setAttribute('playsinline', '');
-                    video.srcObject = stream;
-                    
-                    // DOM 구조 엉킴 방지: 무조건 body 맨 앞에 주입하고 배경색 리셋
-                    document.body.insertBefore(video, document.body.firstChild);
-                    document.body.style.backgroundColor = "transparent";
-                })
-                .catch(function (err) {
-                    console.error("카메라를 켤 수 없습니다: ", err);
-                    alert("카메라 권한을 승인하셔야 원활한 AR 감상이 가능합니다.");
-                });
-        }
+        window.onload = function() {
+    renderPage();
+}
 
         function renderPage() {
             const pageData = storyPages[currentPage];
